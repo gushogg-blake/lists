@@ -1,6 +1,6 @@
 project('lists', 'vala', 'c')
 
-gnome = import('gnome')
+#gnome = import('gnome')
 
 dependencies = [
 	dependency('glib-2.0'),
@@ -10,6 +10,9 @@ dependencies = [
 
 sources = files(
 	'src/main.vala',
+	'src/Lists.vala',
+	'src/Item.vala',
+	'src/Document.vala',
 	'src/Window.vala',
 )
 

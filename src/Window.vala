@@ -1,10 +1,16 @@
 public class Window : Gtk.Window {
+	public Document? document { get; }
+	
 	public Window(Lists app) {
 		Object(
 			application: app
 		);
 		
 		buildUi();
+	}
+	
+	public openFile(File file) {
+		document = Document.fromFile(file);
 	}
 	
 	private void buildUi() {
