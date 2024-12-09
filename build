@@ -1,3 +1,0 @@
-#!/bin/bash
-
-valac -X -w --pkg gtk4 -o lists ./src/*.vala
