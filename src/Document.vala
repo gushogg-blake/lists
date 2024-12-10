@@ -1,45 +1,51 @@
+/*
+There are two levels - Document, which knows about files, and
+List, which is the actual domain object - a list of stuff.
+
+The containment hierarchy will probably look like:
+
+Application (manages windows)
+	Window (UI for editing a list)
+		Document (container for associating a list with the underlying file, if any)
+			List (list)
+
+we won't have tabs - one file per window (this makes sense because
+it's not like code where we'll have multiple lists per project that
+are tightly related, it's more like Word documents)
+
+LIFECYCLE
+
+- every Window has a Document
+
+- the Document instance will be the same for the lifecycle of the Window - if you create
+  a new file then save it, we'll call setFile to associate the document with the file.
+  renaming will work similarly - it's still the same Document.
+
+PURPOSE
+
+- container. we need somewhere to put the logic of associating files with Lists, and
+  for parsing the files and serialising the lists back to files. don't read too much into
+  the name.
+
+INVARIANTS
+
+- the document will always have an underlying list - we make sure to either parse one
+  from a file, or create a new one, in the constructors
+
+CONSTRUCTION
+
+- static methods
+*/
 
 public class Document : Object {
+	public List list { get; construct; }
 	public File? file { get; construct; }
 	
-	public Document(File? file) {
+	private Document(List list, File? file) {
 		Object(
+			list: list,
 			file: file
 		);
-		
-		if (file != null) {
-			this.readFile();
-		}
-	}
-	
-	private async void readFile() {
-		file.read_async.begin(Priority.DEFAULT, null, (obj, res) => {
-			try {
-				var fileInputStream = file.read_async.end(res);
-				var dataInputStream = new DataInputStream(fileInputStream);
-				
-				string line;
-				
-				while ((line = dataInputStream.read_line()) != null) {
-					print("%s\n", line);
-				}
-				
-				
-			} catch (Error e) {
-				
-			}
-		});
-		try {
-			var stream = file.read();
-			
-			parseStream(stream);
-		} catch (Error e) {
-			
-		}
-	}
-	
-	private async void parseStream(InputStream stream) {
-		
 	}
 	
 	public bool isNew {
@@ -47,12 +53,22 @@ public class Document : Object {
 	}
 	
 	public static Document _new() {
-		return new Document(null);
+		return new Document(new List(), null);
 	}
 	
-	public static Document fromFile(File file) {
-		stdout.printf("%s\n", file.get_uri());
+	private static async DataInputStream readFile(File file) throws Error {
+		var fileInputStream = yield file.read_async();
+		var dataInputStream = new DataInputStream(fileInputStream);
 		
-		return new Document(null);
+		return dataInputStream;
 	}
+	
+	public static async Document fromFile(File file) throws Error {
+		var dataInputStream = yield readFile(file);
+		var list = List.fromStream(dataInputStream);
+		
+		return new Document(list, file);
+	}
+	
+	
 }

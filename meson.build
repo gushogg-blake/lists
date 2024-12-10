@@ -4,16 +4,20 @@ project('lists', 'vala', 'c')
 
 dependencies = [
 	dependency('glib-2.0'),
-	dependency('gtk4'),
 	dependency('gobject-2.0'),
+	dependency('gee-0.8'),
+	dependency('gtk4'),
 ]
 
 sources = files(
 	'src/main.vala',
 	'src/Lists.vala',
-	'src/Item.vala',
+	'src/ListItem.vala',
 	'src/Document.vala',
+	'src/List.vala',
 	'src/Window.vala',
+	
+	'src/listFromStream.vala',
 )
 
 executable(

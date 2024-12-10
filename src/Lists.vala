@@ -25,9 +25,19 @@ public class Lists : Gtk.Application {
 	
 	public override void open(File[] files, string hint) {
 		foreach (File file in files) {
+			stdout.printf("Opening file: %s\n", file.get_uri());
+			
 			var window = createWindow();
 			
-			window.openFile(file);
+			window.openFile.begin(file, (obj, res) => {
+				try {
+					window.openFile.end(res);
+					
+					//window.present();
+				} catch (Error e) {
+					stderr.printf("error\n");
+				}
+			});
 		}
 	}
 }
