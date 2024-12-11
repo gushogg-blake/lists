@@ -2,6 +2,14 @@
 
 description
 
-## @fields
+# @fields
 
-## @meta
+- f1: 123
+
+- f2: value
+
+# @meta
+
+- something: foo
+
+- s1: bar

@@ -33,6 +33,8 @@ public class Lists : Gtk.Application {
 				try {
 					window.openFile.end(res);
 					
+					quit();
+					
 					//window.present();
 				} catch (Error e) {
 					stderr.printf("error\n");

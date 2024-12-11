@@ -44,15 +44,53 @@ etc
 
 */
 
+using Gee;
+
+/*
+multi-stage parse - first split into general sections, then parse each section
+if needed
+
+- start on INIT to get the header
+- then parse the marked sections in GENERAL
+*/
+
 enum State {
 	INIT,
-	READING_DESCRIPTION,
-	READING_LONG_FIELDS,
-	READING_FIELDS,
-	READING_META
+	GENERAL
 }
 
-
+public GLib.List<string> trimLines(GLib.List<string> lines) {
+	var firstNonEmptyLineIndex = -1;
+	var lastNonEmptyLineIndex = -1;
+	weak GLib.List<string> res = new GLib.List<string>();
+	var index = 0;
+	
+	lines.foreach((line) => {
+		if (line != "") {
+			if (firstNonEmptyLineIndex == -1) {
+				firstNonEmptyLineIndex = index;
+			}
+			
+			lastNonEmptyLineIndex = index;
+		}
+		
+		index++;
+	});
+	
+	if (firstNonEmptyLineIndex != -1) {
+		index = 0;
+		
+		lines.foreach((line) => {
+			if (index >= firstNonEmptyLineIndex && index <= lastNonEmptyLineIndex) {
+				res.append(line);
+			}
+			
+			index++;
+		});
+	}
+	
+	return res;
+}
 
 public List listFromStream(DataInputStream stream) throws Error {
 	var list = new List();
@@ -60,37 +98,83 @@ public List listFromStream(DataInputStream stream) throws Error {
 	var state = State.INIT;
 	
 	bool inCodeBlock = false;
-	string name;
-	var descriptionLines = new GLib.List<string>();
-	var fields = new HashMap<string, string> // TODO doesn't support types yet - need a Field object
+	string name = "";
 	
-	// string.joinv("\n", descriptionLines.to_array());
+	var descriptionLines = new GLib.List<string>();
+	var fieldLines = new GLib.List<string>();
+	var longFieldLines = new GLib.List<string>();
+	var metaLines = new GLib.List<string>();
+	
+	// HACK for some reason we need to append something first
+	// otherwise appending to the unowned container var won't
+	// affect the original
+	descriptionLines.append("");
+	fieldLines.append("");
+	longFieldLines.append("");
+	metaLines.append("");
+	
+	var fields = new HashMap<string, string>(); // TODO doesn't support types yet - need a Field object
+	
+	unowned GLib.List<string>? container = null;
 	
 	string line;
 	
 	while ((line = stream.read_line()) != null) {
 		line = line.strip();
 		
-		if (!inCodeBlock && line == "```") {
-			inCodeBlock = true;
-			continue;
-		}
-		
-		if (inCodeBlock && line == "```") {
-			inCodeBlock = false;
-			continue;
-		}
-		
-		
 		if (state == State.INIT) {
-			if (line.has_prefix("#")) {
-				name = line.slice("# ".length, line.length - "# ".length);
+			if (line == "") {
+				continue;
+			}
+			
+			if (line.has_prefix("# ")) {
+				name = line.slice("# ".length, line.length);
+				
+				state = State.GENERAL;
+				
+				container = descriptionLines;
+				
+				continue;
 			}
 		}
 		
-		if (state == State.READING_DESCRIPTION) {
+		if (state == State.GENERAL) {
+			if (!inCodeBlock && line.has_prefix("# @")) {
+				var sectionName = line.slice("# @".length, line.length);
+				
+				if (sectionName == "fields") {
+					stdout.printf("container = fields\n");
+					container = fieldLines;
+				} else if (sectionName == "longFields") {
+					stdout.printf("container = longFields\n");
+					container = longFieldLines;
+				} else if (sectionName == "meta") {
+					stdout.printf("container = meta\n");
+					container = metaLines;
+				}
+			} else {
+				stdout.printf("appending\n");
+				container.append(line);
+				stdout.printf("container length: %u\n", container.length());
+			}
+			
+			if (!inCodeBlock && line.has_prefix("```")) {
+				inCodeBlock = true;
+			} else if (inCodeBlock && line == "```") {
+				inCodeBlock = false;
+			}
 		}
 	}
+	
+	stdout.printf("name: %s\n", name);
+	
+	stdout.printf("fields\n");
+	
+	stdout.printf("%u\n", metaLines.length());
+	
+	fieldLines.foreach((line) => {
+		print(@"$line\n");
+	});
 	
 	return list;
 }
