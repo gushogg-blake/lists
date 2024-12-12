@@ -62,31 +62,24 @@ enum State {
 public GLib.List<string> trimLines(GLib.List<string> lines) {
 	var firstNonEmptyLineIndex = -1;
 	var lastNonEmptyLineIndex = -1;
-	weak GLib.List<string> res = new GLib.List<string>();
-	var index = 0;
+	var res = new GLib.List<string>();
 	
-	lines.foreach((line) => {
-		if (line != "") {
+	for (int i = 0; i < lines.length(); i++) {
+		if (lines.nth_data(i) != "") {
 			if (firstNonEmptyLineIndex == -1) {
-				firstNonEmptyLineIndex = index;
+				firstNonEmptyLineIndex = i;
 			}
 			
-			lastNonEmptyLineIndex = index;
+			lastNonEmptyLineIndex = i;
 		}
-		
-		index++;
-	});
+	}
 	
 	if (firstNonEmptyLineIndex != -1) {
-		index = 0;
-		
-		lines.foreach((line) => {
-			if (index >= firstNonEmptyLineIndex && index <= lastNonEmptyLineIndex) {
-				res.append(line);
+		for (int i = 0; i < lines.length(); i++) {
+			if (i >= firstNonEmptyLineIndex && i <= lastNonEmptyLineIndex) {
+				res.append(lines.nth_data(i));
 			}
-			
-			index++;
-		});
+		}
 	}
 	
 	return res;
@@ -171,6 +164,10 @@ public List listFromStream(DataInputStream stream) throws Error {
 	stdout.printf("fields\n");
 	
 	stdout.printf("%u\n", metaLines.length());
+	
+	descriptionLines = trimLines(descriptionLines);
+	fieldLines = trimLines(fieldLines);
+	metaLines = trimLines(metaLines);
 	
 	fieldLines.foreach((line) => {
 		print(@"$line\n");
