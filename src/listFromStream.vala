@@ -59,7 +59,22 @@ enum State {
 	GENERAL
 }
 
-public GLib.List<string> trimLines(GLib.List<string> lines) {
+private string listToString(GLib.List<string> list, string separator) {
+	var res = "";
+	var length = list.length();
+	
+	for (int i = 0; i < length; i++) {
+		res += list.nth_data(i);
+		
+		if (i <= length - 2) {
+			res += separator;
+		}
+	}
+	
+	return res;
+}
+
+private GLib.List<string> trimLines(GLib.List<string> lines) {
 	var firstNonEmptyLineIndex = -1;
 	var lastNonEmptyLineIndex = -1;
 	var res = new GLib.List<string>();
@@ -79,6 +94,20 @@ public GLib.List<string> trimLines(GLib.List<string> lines) {
 			if (i >= firstNonEmptyLineIndex && i <= lastNonEmptyLineIndex) {
 				res.append(lines.nth_data(i));
 			}
+		}
+	}
+	
+	return res;
+}
+
+private GLib.List<string> trimLinesInner(GLib.List<string> lines) {
+	var res = new GLib.List<string>();
+	
+	for (int i = 0; i < lines.length(); i++) {
+		var line = lines.nth_data(i);
+		
+		if (line != "") {
+			res.append(line);
 		}
 	}
 	
@@ -136,19 +165,14 @@ public List listFromStream(DataInputStream stream) throws Error {
 				var sectionName = line.slice("# @".length, line.length);
 				
 				if (sectionName == "fields") {
-					stdout.printf("container = fields\n");
 					container = fieldLines;
 				} else if (sectionName == "longFields") {
-					stdout.printf("container = longFields\n");
 					container = longFieldLines;
 				} else if (sectionName == "meta") {
-					stdout.printf("container = meta\n");
 					container = metaLines;
 				}
 			} else {
-				stdout.printf("appending\n");
 				container.append(line);
-				stdout.printf("container length: %u\n", container.length());
 			}
 			
 			if (!inCodeBlock && line.has_prefix("```")) {
@@ -159,19 +183,25 @@ public List listFromStream(DataInputStream stream) throws Error {
 		}
 	}
 	
-	stdout.printf("name: %s\n", name);
-	
-	stdout.printf("fields\n");
-	
-	stdout.printf("%u\n", metaLines.length());
-	
 	descriptionLines = trimLines(descriptionLines);
-	fieldLines = trimLines(fieldLines);
-	metaLines = trimLines(metaLines);
+	fieldLines = trimLinesInner(fieldLines);
+	metaLines = trimLinesInner(metaLines);
 	
-	fieldLines.foreach((line) => {
-		print(@"$line\n");
-	});
+	string description = listToString(descriptionLines, "\n");
+	
+	print(@"name: $name\n\n");
+	
+	print(@"description:\n\n");
+	
+	print(description + "\n\n");
+	
+	print("fields:\n\n");
+	
+	for (int i = 0; i < fieldLines.length(); i++) {
+		var item = fieldLines.nth_data(i);
+		
+		print(@"$item\n");
+	}
 	
 	return list;
 }
