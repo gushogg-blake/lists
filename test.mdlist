@@ -1,39 +1,59 @@
-# Test
+# @notes
 
-description 123
-1
-23
-12
-3
+description of whole list
 
-12
-3
-3
+# @item list item 1
 
-etc
+description
 
-# @fields
+## @fields
 
 - f1: 123
-
 - f2: value
 
-# @longFields
+## @longFields
 
-# :test
+### :test
 
 123
 
-# :test2
+### :test2
 
 4567
 
-## subhedaing
+## subheading
 
 para
 
-# @meta
+## @meta
 
 - something: foo
+- s1: bar
 
+# @item list item 2
+
+description
+
+## @fields
+
+- f1: 123
+- f2: value
+
+## @longFields
+
+### :test
+
+123
+
+### :test2
+
+4567
+
+## subheading
+
+para
+
+## @meta
+
+- something: foo
 - s1: bar
