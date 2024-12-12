@@ -135,8 +135,6 @@ public List listFromStream(DataInputStream stream) throws Error {
 	longFieldLines.append("");
 	metaLines.append("");
 	
-	var fields = new HashMap<string, string>(); // TODO doesn't support types yet - need a Field object
-	
 	unowned GLib.List<string>? container = null;
 	
 	string line;
@@ -185,23 +183,120 @@ public List listFromStream(DataInputStream stream) throws Error {
 	
 	descriptionLines = trimLines(descriptionLines);
 	fieldLines = trimLinesInner(fieldLines);
+	longFieldLines = trimLines(longFieldLines);
 	metaLines = trimLinesInner(metaLines);
 	
 	string description = listToString(descriptionLines, "\n");
 	
+	// parse short and long fields and merge them into one HashMap
+	
+	var shortFields = parseFields(fieldLines);
+	var longFields = parseLongFields(longFieldLines);
+	var fields = mergeFields(shortFields, longFields);
+	
+	list.name = name;
+	list.description = description;
+	list.fields = fields;
+	
 	print(@"name: $name\n\n");
-	
 	print(@"description:\n\n");
-	
 	print(description + "\n\n");
-	
 	print("fields:\n\n");
-	
-	for (int i = 0; i < fieldLines.length(); i++) {
-		var item = fieldLines.nth_data(i);
+	fields.map_iterator().foreach((k, v) => {
+		print(@"$k: $v\n");
 		
-		print(@"$item\n");
-	}
+		return true;
+	});
+	//print("fields:\n\n");
+	//longFields.map_iterator().foreach((k, v) => {
+	//	print(@"$k: $v\n");
+	//	
+	//	return true;
+	//});
 	
 	return list;
+}
+
+private HashMap<string, string> parseFields(GLib.List<string> fieldLines) {
+	var res = new HashMap<string, string>();
+	
+	for (int i = 0; i < fieldLines.length(); i++) {
+		var line = fieldLines.nth_data(i);
+		
+		if (!line.has_prefix("- ")) {
+			continue;
+		}
+		
+		line = line.slice("- ".length, line.length);
+		
+		string[] parts = line.split(": ", 2);
+		
+		if (parts.length != 2) {
+			continue;
+		}
+		
+		res.set(parts[0], parts[1]);
+	}
+	
+	return res;
+}
+
+private HashMap<string, string> parseLongFields(GLib.List<string> longFieldLines) {
+	var untrimmed = new HashMap<string, string>();
+	string? field = null;
+	string lines = "";
+	
+	for (int i = 0; i < longFieldLines.length(); i++) {
+		var line = longFieldLines.nth_data(i);
+		
+		if (line.has_prefix("# :")) {
+			if (field != null) {
+				untrimmed.set(field, lines);
+			}
+			
+			field = line.slice("# :".length, line.length);
+			lines = "";
+		} else {
+			if (field == null) {
+				continue;
+			}
+			
+			lines += @"\n$line";
+		}
+	}
+	
+	if (field != null) {
+		untrimmed.set(field, lines);
+	}
+	
+	var res = new HashMap<string, string>();
+	
+	untrimmed.map_iterator().foreach((k, v) => {
+		res.set(k, v.strip());
+		
+		return true;
+	});
+	
+	return res;
+}
+
+private HashMap<string, string> mergeFields(
+	HashMap<string, string> shortFields,
+	HashMap<string, string> longFields
+) {
+	var res = new HashMap<string, string>();
+	
+	shortFields.map_iterator().foreach((k, v) => {
+		res.set(k, v);
+		
+		return true;
+	});
+	
+	longFields.map_iterator().foreach((k, v) => {
+		res.set(k, v);
+		
+		return true;
+	});
+	
+	return res;
 }
