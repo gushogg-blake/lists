@@ -1,3 +1,5 @@
+using Gee;
+
 public class ListItem : GLib.Object {
 	public string name;
 	public string description;

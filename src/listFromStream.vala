@@ -1,60 +1,36 @@
 /*
-we don't do a full markdown parse here as we can just read the lines:
+mdlist documents are markdown files describing a list
 
-- skip anything before the first h1
-- first h1 is the name
-- one or more lines for the description
-- then special h1s marking sections (fields, meta)
+a few special syntaxes:
 
+- the whole file is split into "pages" by <hr class="mdlist-separator"/>
+- the first page contains info about the list itself; the rest of the pages
+  are the items
+- each page follows a format where the first h1 is the name and the following
+  markdown is the description - until we get to special sections (see below)
+- after the name and description we have special sections which are marked with
+  an h2 and an @, like ## @fields
+- within the ## @longFields section, fields are marked with h3s and a colon:
+  ### :fieldName
 
-within fields, we have two possible syntaxes - lists and subheadings
+see /test.mdlist for example
 
-by default, fields are string type, but we can type them to put different
-widgets in the table
-
-# name
-
-description
-
-- can include lists
-
-## and subheadings
-
-# @longfields
-
-# heading per field
-
-field content
-
-# another field
-
-etc
-
-# @fields
-
-- field1:yesno: Y
-- field2:date: 2022-02-22
-- field3: defaults to string
-
-# @meta
-
-- meta field: defaults to string
-- another meta:number: 123
-
-
+this syntax means we don't have to do a full parse of the markdown, we can
+just go line by line (until we actually want to parse the markdown, of course)
 */
 
 using Gee;
 
 /*
-multi-stage parse - first split into general sections, then parse each section
-if needed
+parsing a page is done in multiple stages to make it simpler - we first split
+it up into sections, then do any necessary parsing of the sections in separate
+functions
 
-- start on INIT to get the header
+- start on INIT to get the name and description
 - then parse the marked sections in GENERAL
 */
 
-enum State {
+enum ParseState {
 	INIT,
 	GENERAL
 }
@@ -112,6 +88,102 @@ private GLib.List<string> trimLinesInner(GLib.List<string> lines) {
 	}
 	
 	return res;
+}
+
+private GLib.List<GLib.List<string>> splitStreamIntoSections(DataInputStream stream) {
+	var sections = new GLib.List<GLib.List<string>>();
+	
+	
+	
+	return sections;
+}
+
+private ListItem listItemFromLines(GLib.List<string> lines) {
+	var listItem = new ListItem();
+	
+	var state = ParseState.INIT;
+	bool inCodeBlock = false;
+	
+	string name = "";
+	var descriptionLines = new GLib.List<string>();
+	var shortFieldLines = new GLib.List<string>();
+	var longFieldLines = new GLib.List<string>();
+	var metaLines = new GLib.List<string>();
+	
+	// HACK for some reason we need to append something first
+	// otherwise appending to the unowned container var won't
+	// affect the original
+	descriptionLines.append("");
+	shortFieldLines.append("");
+	longFieldLines.append("");
+	metaLines.append("");
+	
+	unowned GLib.List<string>? container = null;
+	
+	for (int i = 0; i < lines.length(); i++) {
+		var line = lines.nth_data(i);
+		
+		line = line.strip();
+		
+		if (state == ParseState.INIT) {
+			if (line == "") {
+				continue;
+			}
+			
+			if (line.has_prefix("# ")) {
+				name = line.slice("# ".length, line.length);
+				
+				state = ParseState.GENERAL;
+				
+				container = descriptionLines;
+				
+				continue;
+			}
+		}
+		
+		if (state == ParseState.GENERAL) {
+			if (!inCodeBlock && line.has_prefix("# @")) {
+				var sectionName = line.slice("# @".length, line.length);
+				
+				if (sectionName == "fields") {
+					container = shortFieldLines;
+				} else if (sectionName == "longFields") {
+					container = longFieldLines;
+				} else if (sectionName == "meta") {
+					container = metaLines;
+				}
+			} else {
+				container.append(line);
+			}
+			
+			if (!inCodeBlock && line.has_prefix("```")) {
+				inCodeBlock = true;
+			} else if (inCodeBlock && line == "```") {
+				inCodeBlock = false;
+			}
+		}
+	}
+	
+	descriptionLines = trimLines(descriptionLines);
+	shortFieldLines = trimLinesInner(shortFieldLines);
+	longFieldLines = trimLines(longFieldLines);
+	metaLines = trimLinesInner(metaLines);
+	
+	string description = listToString(descriptionLines, "\n");
+	
+	// parse short and long fields and merge them into one HashMap
+	
+	var shortFields = parseFields(longFieldLines);
+	var longFields = parseLongFields(longFieldLines);
+	var fields = mergeFields(shortFields, longFields);
+	var meta = parseFields(metaLines);
+	
+	listItem.name = name;
+	listItem.description = description;
+	listItem.fields = fields;
+	listItem.meta = meta;
+	
+	return listItem;
 }
 
 public List listFromStream(DataInputStream stream) throws Error {
