@@ -33,9 +33,9 @@ public class Lists : Gtk.Application {
 				try {
 					window.openFile.end(res);
 					
-					quit();
+					//quit();
 					
-					//window.present();
+					window.present();
 				} catch (Error e) {
 					stderr.printf("error\n");
 				}
