@@ -1,8 +1,10 @@
-# @notes
+# Test
 
 description of whole list
 
-# @item list item 1
+<hr class="mdlist-separator"/>
+
+# Item 1
 
 description
 
@@ -30,7 +32,9 @@ para
 - something: foo
 - s1: bar
 
-# @item list item 2
+<hr class="mdlist-separator"/>
+
+# Item 2
 
 description
 

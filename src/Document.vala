@@ -67,6 +67,9 @@ public class Document : Object {
 		var dataInputStream = yield readFile(file);
 		var list = List.fromStream(dataInputStream);
 		
+		print(@"$(list.name)\n");
+		print(@"$(list.notes)\n");
+		
 		return new Document(list, file);
 	}
 	

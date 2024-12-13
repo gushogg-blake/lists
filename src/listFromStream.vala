@@ -35,12 +35,12 @@ enum ParseState {
 	GENERAL
 }
 
-private string listToString(GLib.List<string> list, string separator) {
+private string listToString(ArrayList<string> list, string separator) {
 	var res = "";
-	var length = list.length();
+	var length = list.size;
 	
 	for (int i = 0; i < length; i++) {
-		res += list.nth_data(i);
+		res += list.get(i);
 		
 		if (i <= length - 2) {
 			res += separator;
@@ -50,13 +50,18 @@ private string listToString(GLib.List<string> list, string separator) {
 	return res;
 }
 
-private GLib.List<string> trimLines(GLib.List<string> lines) {
+/*
+NOTE we can probably do these more efficiently with remove_at -
+converted from GLib.List which is a bit weird
+*/
+
+private ArrayList<string> trimLines(ArrayList<string> lines) {
 	var firstNonEmptyLineIndex = -1;
 	var lastNonEmptyLineIndex = -1;
-	var res = new GLib.List<string>();
+	var res = new ArrayList<string>();
 	
-	for (int i = 0; i < lines.length(); i++) {
-		if (lines.nth_data(i) != "") {
+	for (int i = 0; i < lines.size; i++) {
+		if (lines.get(i) != "") {
 			if (firstNonEmptyLineIndex == -1) {
 				firstNonEmptyLineIndex = i;
 			}
@@ -66,9 +71,9 @@ private GLib.List<string> trimLines(GLib.List<string> lines) {
 	}
 	
 	if (firstNonEmptyLineIndex != -1) {
-		for (int i = 0; i < lines.length(); i++) {
+		for (int i = 0; i < lines.size; i++) {
 			if (i >= firstNonEmptyLineIndex && i <= lastNonEmptyLineIndex) {
-				res.append(lines.nth_data(i));
+				res.add(lines.get(i));
 			}
 		}
 	}
@@ -76,52 +81,44 @@ private GLib.List<string> trimLines(GLib.List<string> lines) {
 	return res;
 }
 
-private GLib.List<string> trimLinesInner(GLib.List<string> lines) {
-	var res = new GLib.List<string>();
+private ArrayList<string> trimLinesInner(ArrayList<string> lines) {
+	var res = new ArrayList<string>();
 	
-	for (int i = 0; i < lines.length(); i++) {
-		var line = lines.nth_data(i);
+	for (int i = 0; i < lines.size; i++) {
+		var line = lines.get(i);
 		
 		if (line != "") {
-			res.append(line);
+			res.add(line);
 		}
 	}
 	
 	return res;
 }
 
-private GLib.List<GLib.List<string>> splitStreamIntoSections(DataInputStream stream) {
-	var sections = new GLib.List<GLib.List<string>>();
-	
-	
-	
-	return sections;
-}
+//private ArrayList<ArrayList<string>> splitStreamIntoSections(DataInputStream stream) {
+//	var sections = new ArrayList<ArrayList<string>>();
+//	
+//	
+//	
+//	return sections;
+//}
 
-private ListItem listItemFromLines(GLib.List<string> lines) {
+private ListItem listItemFromLines(ArrayList<string> lines) {
 	var listItem = new ListItem();
 	
 	var state = ParseState.INIT;
 	bool inCodeBlock = false;
 	
 	string name = "";
-	var descriptionLines = new GLib.List<string>();
-	var shortFieldLines = new GLib.List<string>();
-	var longFieldLines = new GLib.List<string>();
-	var metaLines = new GLib.List<string>();
+	var descriptionLines = new ArrayList<string>();
+	var shortFieldLines = new ArrayList<string>();
+	var longFieldLines = new ArrayList<string>();
+	var metaLines = new ArrayList<string>();
 	
-	// HACK for some reason we need to append something first
-	// otherwise appending to the unowned container var won't
-	// affect the original
-	descriptionLines.append("");
-	shortFieldLines.append("");
-	longFieldLines.append("");
-	metaLines.append("");
+	unowned ArrayList<string>? container = null;
 	
-	unowned GLib.List<string>? container = null;
-	
-	for (int i = 0; i < lines.length(); i++) {
-		var line = lines.nth_data(i);
+	for (int i = 0; i < lines.size; i++) {
+		var line = lines.get(i);
 		
 		line = line.strip();
 		
@@ -142,8 +139,8 @@ private ListItem listItemFromLines(GLib.List<string> lines) {
 		}
 		
 		if (state == ParseState.GENERAL) {
-			if (!inCodeBlock && line.has_prefix("# @")) {
-				var sectionName = line.slice("# @".length, line.length);
+			if (!inCodeBlock && line.has_prefix("## @")) {
+				var sectionName = line.slice("## @".length, line.length);
 				
 				if (sectionName == "fields") {
 					container = shortFieldLines;
@@ -153,7 +150,7 @@ private ListItem listItemFromLines(GLib.List<string> lines) {
 					container = metaLines;
 				}
 			} else {
-				container.append(line);
+				container.add(line);
 			}
 			
 			if (!inCodeBlock && line.has_prefix("```")) {
@@ -189,111 +186,51 @@ private ListItem listItemFromLines(GLib.List<string> lines) {
 public List listFromStream(DataInputStream stream) throws Error {
 	var list = new List();
 	
-	var state = State.INIT;
-	
-	bool inCodeBlock = false;
-	string name = "";
-	
-	var descriptionLines = new GLib.List<string>();
-	var fieldLines = new GLib.List<string>();
-	var longFieldLines = new GLib.List<string>();
-	var metaLines = new GLib.List<string>();
-	
-	// HACK for some reason we need to append something first
-	// otherwise appending to the unowned container var won't
-	// affect the original
-	descriptionLines.append("");
-	fieldLines.append("");
-	longFieldLines.append("");
-	metaLines.append("");
-	
-	unowned GLib.List<string>? container = null;
+	var pages = new ArrayList<ArrayList<string>>();
+	var lines = new ArrayList<string>();
 	
 	string line;
 	
 	while ((line = stream.read_line()) != null) {
 		line = line.strip();
 		
-		if (state == State.INIT) {
-			if (line == "") {
-				continue;
-			}
+		if (line == "<hr class=\"mdlist-separator\"/>") {
+			pages.add(lines);
 			
-			if (line.has_prefix("# ")) {
-				name = line.slice("# ".length, line.length);
-				
-				state = State.GENERAL;
-				
-				container = descriptionLines;
-				
-				continue;
-			}
-		}
-		
-		if (state == State.GENERAL) {
-			if (!inCodeBlock && line.has_prefix("# @")) {
-				var sectionName = line.slice("# @".length, line.length);
-				
-				if (sectionName == "fields") {
-					container = fieldLines;
-				} else if (sectionName == "longFields") {
-					container = longFieldLines;
-				} else if (sectionName == "meta") {
-					container = metaLines;
-				}
-			} else {
-				container.append(line);
-			}
-			
-			if (!inCodeBlock && line.has_prefix("```")) {
-				inCodeBlock = true;
-			} else if (inCodeBlock && line == "```") {
-				inCodeBlock = false;
-			}
+			lines = new ArrayList<string>();
+		} else {
+			lines.add(line);
 		}
 	}
 	
-	descriptionLines = trimLines(descriptionLines);
-	fieldLines = trimLinesInner(fieldLines);
-	longFieldLines = trimLines(longFieldLines);
-	metaLines = trimLinesInner(metaLines);
+	if (lines.size > 0) {
+		pages.add(lines);
+	}
 	
-	string description = listToString(descriptionLines, "\n");
+	if (pages.size == 0) {
+		return list;
+	}
 	
-	// parse short and long fields and merge them into one HashMap
+	var listPage = pages.get(0);
+	var listListItem = listItemFromLines(listPage);
 	
-	var shortFields = parseFields(fieldLines);
-	var longFields = parseLongFields(longFieldLines);
-	var fields = mergeFields(shortFields, longFields);
+	list.name = listListItem.name;
+	list.notes = listListItem.description;
 	
-	list.name = name;
-	list.description = description;
-	list.fields = fields;
-	
-	print(@"name: $name\n\n");
-	print(@"description:\n\n");
-	print(description + "\n\n");
-	print("fields:\n\n");
-	fields.map_iterator().foreach((k, v) => {
-		print(@"$k: $v\n");
+	for (int i = 1; i < pages.size; i++) {
+		var listItem = listItemFromLines(pages.get(i));
 		
-		return true;
-	});
-	//print("fields:\n\n");
-	//longFields.map_iterator().foreach((k, v) => {
-	//	print(@"$k: $v\n");
-	//	
-	//	return true;
-	//});
+		list.items.add(listItem);
+	}
 	
 	return list;
 }
 
-private HashMap<string, string> parseFields(GLib.List<string> fieldLines) {
+private HashMap<string, string> parseFields(ArrayList<string> fieldLines) {
 	var res = new HashMap<string, string>();
 	
-	for (int i = 0; i < fieldLines.length(); i++) {
-		var line = fieldLines.nth_data(i);
+	for (int i = 0; i < fieldLines.size; i++) {
+		var line = fieldLines.get(i);
 		
 		if (!line.has_prefix("- ")) {
 			continue;
@@ -313,13 +250,13 @@ private HashMap<string, string> parseFields(GLib.List<string> fieldLines) {
 	return res;
 }
 
-private HashMap<string, string> parseLongFields(GLib.List<string> longFieldLines) {
+private HashMap<string, string> parseLongFields(ArrayList<string> longFieldLines) {
 	var untrimmed = new HashMap<string, string>();
 	string? field = null;
 	string lines = "";
 	
-	for (int i = 0; i < longFieldLines.length(); i++) {
-		var line = longFieldLines.nth_data(i);
+	for (int i = 0; i < longFieldLines.size; i++) {
+		var line = longFieldLines.get(i);
 		
 		if (line.has_prefix("# :")) {
 			if (field != null) {
