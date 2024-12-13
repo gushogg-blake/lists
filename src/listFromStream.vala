@@ -258,12 +258,12 @@ private HashMap<string, string> parseLongFields(ArrayList<string> longFieldLines
 	for (int i = 0; i < longFieldLines.size; i++) {
 		var line = longFieldLines.get(i);
 		
-		if (line.has_prefix("# :")) {
+		if (line.has_prefix("### :")) {
 			if (field != null) {
 				untrimmed.set(field, lines);
 			}
 			
-			field = line.slice("# :".length, line.length);
+			field = line.slice("### :".length, line.length);
 			lines = "";
 		} else {
 			if (field == null) {
