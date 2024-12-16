@@ -14,21 +14,7 @@ public class Window : Gtk.Window {
 	}
 	
 	private void buildUi() {
-		var mainBox = new Gtk.Box(Gtk.Orientation.VERTICAL, 3);
-		
-		// button
-		
-		var button = new Gtk.Button();
-		
-		button.label = "Create new";
-		
-		button.clicked.connect(() => {
-			test();
-		});
-		
-		mainBox.append(button);
-		
-		child = mainBox;
+		child = new ListEditor();
 	}
 	
 	private void test() {

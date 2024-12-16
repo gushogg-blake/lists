@@ -1,6 +1,6 @@
 project('lists', 'vala', 'c')
 
-#gnome = import('gnome')
+gnome = import('gnome')
 
 dependencies = [
 	dependency('glib-2.0'),
@@ -11,13 +11,22 @@ dependencies = [
 
 sources = files(
 	'src/main.vala',
+	
 	'src/Lists.vala',
 	'src/ListItem.vala',
 	'src/Document.vala',
 	'src/List.vala',
+	
 	'src/Window.vala',
+	'src/ListEditor.vala',
 	
 	'src/listFromStream.vala',
+)
+
+sources += gnome.compile_resources(
+	'resources',
+	'src/ui/lists.gresource.xml',
+	source_dir: 'src/ui'
 )
 
 executable(
