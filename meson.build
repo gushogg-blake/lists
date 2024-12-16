@@ -23,11 +23,11 @@ sources = files(
 	'src/listFromStream.vala',
 )
 
-sources += gnome.compile_resources(
-	'resources',
-	'src/ui/lists.gresource.xml',
-	source_dir: 'src/ui'
-)
+#sources += gnome.compile_resources(
+#	'resources',
+#	'src/ui/lists.gresource.xml',
+#	source_dir: 'src/ui'
+#)
 
 executable(
 	'lists',
