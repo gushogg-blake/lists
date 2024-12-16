@@ -12,13 +12,14 @@ dependencies = [
 sources = files(
 	'src/main.vala',
 	
-	'src/Lists.vala',
+	'src/Application.vala',
 	'src/ListItem.vala',
 	'src/Document.vala',
 	'src/List.vala',
 	
-	'src/Window.vala',
-	'src/ListEditor.vala',
+	'src/widgets/Window.vala',
+	'src/widgets/ListEditor.vala',
+	'src/widgets/ListItemWidget.vala',
 	
 	'src/listFromStream.vala',
 )

@@ -6,18 +6,18 @@ public class Window : Gtk.Window {
 			application: app
 		);
 		
-		buildUi();
+		//buildUi();
 	}
 	
 	public async void openFile(File file) throws Error {
 		document = yield Document.fromFile(file);
+		
+		buildUi();
 	}
 	
 	private void buildUi() {
-		child = new ListEditor();
-	}
-	
-	private void test() {
-		stdout.printf("test\n");
+		var editor = new ListEditor(document.list);
+		
+		child = editor.rootWidget;
 	}
 }
